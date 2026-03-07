@@ -9,7 +9,7 @@ int main (int argc, char *argv[]) {
     server_sockaddr.sin_family = AF_INET;
     server_sockaddr.sin_port = htons(PORT);
 
-    char data[512] = "Rey labbey you did it...!";
+    char data[8192];
 
     if (inet_pton(AF_INET, IP, &server_sockaddr.sin_addr) <= 0)
     {
@@ -52,6 +52,8 @@ int main (int argc, char *argv[]) {
         printf("Client got connected\n");
     }
 
+    recv(client_sock, data, sizeof(data), 0);
+    printf("%s\n", data);
     send(client_sock, data, strlen(data), 0);
     
     printf("OK!\n");

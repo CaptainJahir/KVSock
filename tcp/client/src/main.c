@@ -1,5 +1,6 @@
 #include "main.h"
 
+
 enum command_type check_operation_type(const char *cmd) {
     for (int i = 0; i < sizeof(command_types)/sizeof(command_types[0]); i++) {
         if (strcasecmp(cmd, command_types[i].name) == 0) {
@@ -22,6 +23,8 @@ int count_token (char data[]) {
     }   
     return count;
 }
+
+
 
 int main (int argc, char *argv[]) {
     while (1) {
@@ -48,15 +51,20 @@ int main (int argc, char *argv[]) {
 
         char *token = strtok(copy_data, " ");
 
+        /* this data will be passed into command handling functions */
+        char packet_input[MAX_INP_SIZE];
+        memset(&packet_input, 0, sizeof(packet_input));
+        strcpy(packet_input, trimmed);
+
+        bool success;
         switch (check_operation_type(token)) {
             case CMD_SET:
                 if (word_count != 3) {
-                    fprintf(stderr, "Usage: <SET_STR|SET_INT|UPDATE> <var_name> <value>\n");
+                    fprintf(stderr, "Usage: <SET_STR|SET_NUM|UPDATE> <var_name> <value>\n");
                     continue;
                 } else {
-                    strncpy(req.operation, token, sizeof(req.operation)-1);
-                    strncpy(req.var_one_name, strtok(NULL, " "), sizeof(req.var_one_name)-1);
-                    strncpy(req.var_one_data, strtok(NULL, " "), sizeof(req.var_one_data)-1);
+                    success = handle_cmd_set(packet_input, &req);
+                    if (!success) continue;
                 }
                 break;
             case CMD_GET:
@@ -64,8 +72,8 @@ int main (int argc, char *argv[]) {
                     fprintf(stderr, "Usage: <GET|DELETE> <var_name>\n");
                     continue;
                 } else {
-                    strncpy(req.operation, token, sizeof(req.operation)-1);
-                    strncpy(req.var_one_name, strtok(NULL, " "), sizeof(req.var_one_name)-1);
+                    success = handle_cmd_get(packet_input, &req);
+                    if (!success) continue;
                 }
                 break;
             case CMD_LIST:
@@ -73,7 +81,17 @@ int main (int argc, char *argv[]) {
                     fprintf(stderr, "Usage: <LIST>\n");
                     continue;
                 } else {
-                    strncpy(req.operation, token, sizeof(req.operation)-1);
+                    success = handle_cmd_list(packet_input, &req);
+                    if (!success) continue;
+                }
+                break;
+            case CMD_ARITH:
+                if (word_count != 4) {
+                    fprintf(stderr, "Usage: <OPR> <STOR_VAR> <VAR_ONE|DATA_ONE> <VAR_TWO|DATA_TWO>\n");
+                    continue;
+                } else {
+                    success = handle_cmd_arith(packet_input, &req);
+                    if (!success) continue;
                 }
                 break;
             default:
@@ -81,19 +99,18 @@ int main (int argc, char *argv[]) {
                 continue;
                 break;
         }
+        // send_data(&req);
         printf("\n");
     }
     return 0;
 }
 
-/*
 
-// TODO: this print statements are for testing 
+/*
 
 printf("operation      : %s\n", req.operation);
 printf("var_one_name   : %s\n", req.var_one_name);
 printf("var_one_data   : %s\n", req.var_one_data);
 printf("var_two_name   : %s\n", req.var_two_name);
-printf("var_two_data   : %s\n", req.var_two_data);
 
 */
