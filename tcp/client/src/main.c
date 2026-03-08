@@ -1,30 +1,6 @@
 #include "main.h"
 
 
-enum command_type check_operation_type(const char *cmd) {
-    for (int i = 0; i < sizeof(command_types)/sizeof(command_types[0]); i++) {
-        if (strcasecmp(cmd, command_types[i].name) == 0) {
-            return command_types[i].type;
-        }
-    }
-    return CMD_UNKNOWN;
-}
-
-int count_token (char data[]) {
-    int count = 0;
-    int in_word = 0;
-    for (int i = 0; data[i] != '\0'; i++) {
-        if (data[i] != ' ' && in_word == 0) {
-            count++;
-            in_word = 1;
-        }else if (data[i] == ' ') {
-            in_word = 0;
-        }   
-    }   
-    return count;
-}
-
-
 
 int main (int argc, char *argv[]) {
     while (1) {

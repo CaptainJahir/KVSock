@@ -34,3 +34,37 @@ enum token_type get_token_type(const char *token) {
     return TOKEN_DATA;
 }
 
+enum command_type check_operation_type(const char *cmd) {
+    for (int i = 0; i < sizeof(command_types)/sizeof(command_types[0]); i++) {
+        if (strcasecmp(cmd, command_types[i].name) == 0) {
+            return command_types[i].type;
+        }
+    }
+    return CMD_UNKNOWN;
+}
+
+int count_token (char data[]) {
+    int count = 0;
+    int in_word = 0;
+    for (int i = 0; data[i] != '\0'; i++) {
+        if (data[i] != ' ' && in_word == 0) {
+            count++;
+            in_word = 1;
+        }else if (data[i] == ' ') {
+            in_word = 0;
+        }   
+    }   
+    return count;
+}
+
+char* trim(char *str) {
+    if (str == NULL || str[0] == '\0') return str;
+    
+    while (*str == ' ') str++;
+    int len = strlen(str);
+    if (len == 0) return str;
+    
+    while (len > 0 && str[len-1] == ' ') len--;
+    str[len] = '\0';
+    return str;
+}
