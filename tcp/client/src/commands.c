@@ -1,17 +1,5 @@
 #include "commands.h"
 
-/*
-
-struct Request_Packet {
-    char operation[16];
-    char var_one_name[64];
-    char var_one_data[256];
-    char var_two_name[64];
-    // char var_two_data[256];
-};
-
-*/
-
 /* TODO: error handling in case of string copy failed then i need to handle errors i think */
 
 

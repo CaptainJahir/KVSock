@@ -6,6 +6,8 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <unistd.h>
+#include <stdbool.h>
+#include <errno.h>
 
 #define IP "127.0.0.1" /* 142.250.206.4 */
 #define PORT 8080 /* 80 */
@@ -18,6 +20,6 @@ struct Request_Packet {
     // char var_two_data[256]; // no use as of now so commented this part
 };
 
-int send_data(struct Request_Packet *packet);
+bool send_data(const struct Request_Packet *packet);
 
 #endif

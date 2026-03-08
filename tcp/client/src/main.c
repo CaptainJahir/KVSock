@@ -99,7 +99,7 @@ int main (int argc, char *argv[]) {
                 continue;
                 break;
         }
-        // send_data(&req);
+        send_data(&req);
         printf("\n");
     }
     return 0;

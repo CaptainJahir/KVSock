@@ -1,69 +1,67 @@
 #include "sockets.h"
 
-int send_data(struct Request_Packet *packet) {
+/* -> additional function input:  , char *output */
+
+bool send_data(const struct Request_Packet *packet) {
+    if (packet == NULL) return false;
+    errno = 0;
     int s;
     struct sockaddr_in addr;
-    char recv_buff[sizeof(*packet)];
+    char recv_buff[8192];
 
-    addr.sin_port = htons(PORT);
     addr.sin_family = AF_INET;
-    inet_pton(AF_INET, IP, &addr.sin_addr);
+    addr.sin_port = htons(PORT);
+    if (inet_pton(AF_INET, IP, &addr.sin_addr) <= 0) {
+        fprintf(stderr, "Invalid IP address\n");
+        return false;
+    }
 
     s = socket(AF_INET, SOCK_STREAM, 0);
-
-    if (connect(s, (struct sockaddr *)&addr, sizeof(addr)) < 0)
-    {
-        perror("Socket error");
+    if (s < 0) {
+        perror("socket error");
+        return false;
+    }
+    
+    if (connect(s, (struct sockaddr *) &addr, sizeof(addr)) < 0) {
+        perror("Failed to connect to the server");
         close(s);
-        return -1;
+        return false;
     }
 
-    write(s, packet, sizeof(*packet));
-
-    send(s, packet, sizeof(*packet), 0);
-
-    recv(s, recv_buff, sizeof(recv_buff), 0);
-
-    printf("%s\n", recv_buff);
-
-    close(s);
-    return 0;
-
-}
-
-/*
-    int main (int argc, char *argv[]) {
-        int s;
-        struct sockaddr_in addr;
-        char buf[512] = "GET / HTTP/1.1\r\n"
-                        "Host: www.google.com\r\n"
-                        "Connection: close\r\n"
-                        "\r\n";
-        char recv_buff[8192];
-
-
-        addr.sin_port = htons(PORT);
-        addr.sin_family = AF_INET;
-        inet_pton(AF_INET, IP, &addr.sin_addr);
-
-        s = socket(AF_INET, SOCK_STREAM, 0);
-
-        if (connect(s, (struct sockaddr *)&addr, sizeof(addr)) < 0)
-        {
-            perror("Socket error");
+    const char *ptr = (const char *)packet;
+    size_t remaining = sizeof(*packet);
+    while (remaining > 0) {
+        ssize_t sent = send(s, packet, remaining, MSG_NOSIGNAL);
+        if (sent < 0) {
+            if (errno == EINTR) continue;
+            perror("failed to send data");
             close(s);
-            return -1;
+            return false;
         }
-
-        write(s, buf, sizeof(buf));
-
-        send(s, buf, sizeof(buf), 0);
-
-        recv(s, recv_buff, sizeof(recv_buff), 0);
-
-        printf("%s\n", recv_buff);
-
-        close(s);
-        return 0;
+        ptr += sent;
+        remaining -= sent;
     }
-*/
+    
+
+    /*
+        Your recv call reads only once. If the server’s response is larger than your buffer or arrives in
+        multiple chunks, you might get only part of it. For a simple protocol where responses are small, this
+        is often acceptable. But if you want to be robust, you’d need a loop until you’ve received 
+        the expected amount or a timeout occurs.
+    */ 
+
+    int bytes = recv(s, recv_buff, sizeof(recv_buff)-1, 0);
+    if (bytes > 0) {
+        recv_buff[bytes] = '\0';
+        printf("%s\n", recv_buff);
+    } else if (bytes == 0) {
+        printf("Server closed the connection.\n");
+    } else {
+        perror("recv error");
+        close(s);
+        return false;
+    }
+    
+    close(s);
+    return true;
+}
