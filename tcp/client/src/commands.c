@@ -1,54 +1,70 @@
 #include "commands.h"
 
-/* TODO: error handling in case of string copy failed then i need to handle errors i think */
 
-
-bool handle_cmd_set(char *data, struct Request_Packet *packet) {
-    memset(packet, 0, sizeof(*packet));
-    char *operation = strtok(data, " ");
-    strncpy(packet->operation, operation, sizeof(packet->operation)-1);
-
+ bool handle_cmd_set(Request_Packet *packet, char *tokens[], size_t token_sizes[]) {
     bool is_int = false;
-    if (strcasecmp(operation, "SET_NUM") == 0) {
+    if (strcasecmp(tokens[0], "SET_NUM") == 0) {
         is_int = true;
-    };
-    
-    char *var_name = strtok(NULL, " ");
-    if (!is_valid_var_name(var_name)) {
-        fprintf(stderr, "Invalid variable name: %s \n", var_name);
+        packet->operation = SET_NUM;
+    } else if (strcasecmp(tokens[0], "SET_STR") == 0) {
+        packet->operation = SET_STR;
+    } else if (strcasecmp(tokens[0], "UPDATE") == 0) {
+        packet->operation = UPDATE;
+    } else {
         return false;
     }
-    strncpy(packet->var_one_name, var_name, sizeof(packet->var_one_name)-1);
 
-    char *value = strtok(NULL, " ");
+    char *var_name = tokens[1];
+    if (!is_valid_var_name(var_name)) {
+        fprintf(stderr, "Invalid variable name: %s \n\n", var_name);
+        return false;
+    }
+    packet->var_one_name_len = token_sizes[1];
+    
+    char *value = tokens[2];
     if (is_int && get_token_type(value) != TOKEN_DATA) {
-        fprintf(stderr, "Invalid data for the type Number name: %s \n", value);
+        fprintf(stderr, "Invalid data for the type Number name: %s \n\n", value);
         return false;
     }
-    strncpy(packet->var_one_data, value, sizeof(packet->var_one_data)-1);
+
+    packet->var_one_data_len = token_sizes[2];
+    char *data_arr_ptr = packet->data;
+
+    memcpy(data_arr_ptr, tokens[1], packet->var_one_name_len);
+    data_arr_ptr += packet->var_one_name_len;
+
+    memcpy(data_arr_ptr, tokens[2], packet->var_one_data_len);
     return true;
 }
 
-
-bool handle_cmd_get(char *data, struct Request_Packet *packet) {
-    memset(packet, 0, sizeof(*packet));
-    char *operation = strtok(data, " ");
-    strncpy(packet->operation, operation, sizeof(packet->operation)-1);
+bool handle_cmd_get(Request_Packet *packet, char *tokens[], size_t token_sizes[]) {
+    if (strcasecmp(tokens[0], "GET") == 0) {
+        packet->operation = GET;
+    } else if (strcasecmp(tokens[0], "DELETE") == 0) {
+        packet->operation = DELETE;
+    } else {
+        return false;
+    }
     
-    char *var_name = strtok(NULL, " ");
+    char *var_name = tokens[1];
     if (!is_valid_var_name(var_name)) {
-        fprintf(stderr, "Invalid variable name: %s \n", var_name);
+        fprintf(stderr, "Invalid variable name: %s \n\n", var_name);
         return false;
     }
-    strncpy(packet->var_one_name, var_name, sizeof(packet->var_one_name)-1);
+    packet->var_one_name_len = token_sizes[1];
+    memcpy(packet->data, tokens[1], packet->var_one_name_len);
     return true;
 }
 
 
-bool handle_cmd_list(char *data, struct Request_Packet *packet) {
-    memset(packet, 0, sizeof(*packet));
-    char *operation = strtok(data, " ");
-    strncpy(packet->operation, operation, sizeof(packet->operation)-1);
+bool handle_cmd_list(Request_Packet *packet, char *tokens[], size_t token_sizes[]) {
+    if (strcasecmp(tokens[0], "LIST") == 0) {
+        packet->operation = LIST;
+    } else if (strcasecmp(tokens[0], "DEL_ALL") == 0) {
+        packet->operation = DEL_ALL;
+    } else {
+        return false;
+    }
     return true;
 }
 
@@ -61,18 +77,33 @@ NOTE:
 
 */
 
-bool handle_cmd_arith(char *data, struct Request_Packet *packet) {
-    memset(packet, 0, sizeof(*packet));
-    char *operation = strtok(data, " ");
-    strncpy(packet->operation, operation, sizeof(packet->operation)-1);
+bool handle_cmd_arith(Request_Packet *packet, char *tokens[], size_t token_sizes[]) {
+    if (strcasecmp(tokens[0], "ADD") == 0) {
+        packet->operation = ADD;
+    } else if (strcasecmp(tokens[0], "SUB") == 0) {
+        packet->operation = SUB;
+    } else if (strcasecmp(tokens[0], "MUL") == 0) {
+        packet->operation = MUL;
+    } else if (strcasecmp(tokens[0], "DIV") == 0) {
+        packet->operation = DIV;
+    } else {
+        return false;
+    }
 
-    char *store_var = strtok(NULL, " ");
-    if (!is_valid_var_name(store_var)) return false;
-    
-    char *var_one_name = strtok(NULL, " ");
-    strncpy(packet->var_one_name, var_one_name, sizeof(packet->var_one_name)-1);
+    if (!is_valid_var_name(tokens[1])) return false;
 
-    char *var_two_name = strtok(NULL, " ");
-    strncpy(packet->var_two_name, var_two_name, sizeof(packet->var_two_name)-1);
+    char *data_arr_ptr = packet->data;
+
+    packet->arith_store_var_len = token_sizes[1];
+    memcpy(data_arr_ptr, tokens[1], packet->arith_store_var_len);
+    data_arr_ptr += packet->arith_store_var_len;
+
+    packet->var_one_name_len = token_sizes[2];
+    memcpy(data_arr_ptr, tokens[2], packet->var_one_name_len);
+    data_arr_ptr += packet->var_one_name_len;
+
+    packet->var_two_name_len = token_sizes[3];
+    memcpy(data_arr_ptr, tokens[3], packet->var_two_name_len);
+
     return true;
 }

@@ -4,89 +4,86 @@
 
 int main (int argc, char *argv[]) {
     while (1) {
-        struct Request_Packet req;
-        memset(&req, 0, sizeof(req));
-        char inp[MAX_INP_SIZE];
-        memset(inp, 0, sizeof(inp));
-
-        fgets(inp, sizeof(inp), stdin);
+        char *inp = NULL;
+        size_t inp_size = 0;
+        ssize_t nread;
+        nread = getline(&inp, &inp_size, stdin);
+        if (nread < 0) {
+            if (feof(stdin)) {
+                free(inp);
+                break;
+            } else {
+                free(inp);
+                perror("Failed to take input");
+                break;
+            }
+        }
         inp[strcspn(inp, "\n")] = '\0'; /* removing the '\n' character from the input because while comparing it's interfering */
-        
-        char *trimmed = inp;
-        while (*trimmed == ' ') trimmed++;
-        int inp_end = strlen(trimmed)-1;
-        while (inp_end > 0 && trimmed[inp_end] == ' ') inp_end--;
-        trimmed[inp_end+1] = '\0';
 
+        char *trimmed = trim(inp);
         if (*trimmed == '\0') continue;
         if (strcasecmp(trimmed, "exit") == 0) return 0;
-        char copy_data[MAX_INP_SIZE];
-        memset(&copy_data, 0, sizeof(copy_data));
+        char copy_data[strlen(trimmed)+1];
         strcpy(copy_data, trimmed);
-        int word_count = count_token(copy_data);
-
-        char *token = strtok(copy_data, " ");
-
-        /* this data will be passed into command handling functions */
-        char packet_input[MAX_INP_SIZE];
-        memset(&packet_input, 0, sizeof(packet_input));
-        strcpy(packet_input, trimmed);
+        int max_tokens = 4;
+        char *tokens[max_tokens];
+        size_t token_sizes[max_tokens];
+        int token_count = tokens_extractor(copy_data, tokens, token_sizes, max_tokens);
+        
+        size_t dynamic_arr_size = 0;
+        for (int i = 1; i < token_count; i++) { // exclude 0 because it's operation and we won't be adding it to the array
+            dynamic_arr_size += token_sizes[i] + 1;
+        }
+        
+        Request_Packet *req = calloc(1, sizeof(Request_Packet) + dynamic_arr_size);
 
         bool success;
-        switch (check_operation_type(token)) {
+        switch (check_operation_type(tokens[0])) {
             case CMD_SET:
-                if (word_count != 3) {
-                    fprintf(stderr, "Usage: <SET_STR|SET_NUM|UPDATE> <var_name> <value>\n");
+                if (token_count != 3) {
+                    fprintf(stderr, "Usage: <SET_STR|SET_NUM|UPDATE> <var_name> <value>\n\n");
                     continue;
                 } else {
-                    success = handle_cmd_set(packet_input, &req);
+                    success = handle_cmd_set(req, tokens, token_sizes);
                     if (!success) continue;
                 }
                 break;
             case CMD_GET:
-                if (word_count != 2) {
-                    fprintf(stderr, "Usage: <GET|DELETE> <var_name>\n");
+                if (token_count != 2) {
+                    fprintf(stderr, "Usage: <GET|DELETE> <var_name>\n\n");
                     continue;
                 } else {
-                    success = handle_cmd_get(packet_input, &req);
+                    success = handle_cmd_get(req, tokens, token_sizes);
                     if (!success) continue;
                 }
                 break;
             case CMD_LIST:
-                if (word_count != 1) {
-                    fprintf(stderr, "Usage: <LIST>\n");
+                if (token_count != 1) {
+                    fprintf(stderr, "Usage: <LIST|DEL_ALL>\n\n");
                     continue;
                 } else {
-                    success = handle_cmd_list(packet_input, &req);
+                    success = handle_cmd_list(req, tokens, token_sizes);
                     if (!success) continue;
                 }
                 break;
             case CMD_ARITH:
-                if (word_count != 4) {
-                    fprintf(stderr, "Usage: <OPR> <STOR_VAR> <VAR_ONE|DATA_ONE> <VAR_TWO|DATA_TWO>\n");
+                if (token_count != 4) {
+                    fprintf(stderr, "Usage: <OPR> <STOR_VAR> <VAR_ONE|DATA_ONE> <VAR_TWO|DATA_TWO>\n\n");
                     continue;
                 } else {
-                    success = handle_cmd_arith(packet_input, &req);
+                    success = handle_cmd_arith(req, tokens, token_sizes);
                     if (!success) continue;
                 }
                 break;
             default:
-                fprintf(stderr, "Unknow command\n");
+                fprintf(stderr, "Unknow command\n\n");
                 continue;
                 break;
         }
-        send_data(&req);
+        // send_data(&req);
+        // printf("\n");
         printf("\n");
+        free(inp);
     }
     return 0;
 }
-
-
-/*
-
-printf("operation      : %s\n", req.operation);
-printf("var_one_name   : %s\n", req.var_one_name);
-printf("var_one_data   : %s\n", req.var_one_data);
-printf("var_two_name   : %s\n", req.var_two_name);
-
-*/

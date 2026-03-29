@@ -23,6 +23,20 @@ bool is_valid_var_name(const char *token) {
     return true;
 }
 
+struct command command_types[] = {
+    {"SET_STR", CMD_SET},
+    {"SET_NUM", CMD_SET},
+    {"UPDATE", CMD_SET},
+    {"GET", CMD_GET},
+    {"DELETE", CMD_GET},
+    {"DEL_ALL", CMD_LIST},
+    {"LIST", CMD_LIST},
+    {"ADD", CMD_ARITH},
+    {"SUB", CMD_ARITH},
+    {"MUL", CMD_ARITH},
+    {"DIV", CMD_ARITH},
+};
+
 enum token_type get_token_type(const char *token) {
     errno = 0;
     char *end;
@@ -43,7 +57,7 @@ enum command_type check_operation_type(const char *cmd) {
     return CMD_UNKNOWN;
 }
 
-int count_token (char data[]) {
+int count_token (const char data[]) {
     int count = 0;
     int in_word = 0;
     for (int i = 0; data[i] != '\0'; i++) {
@@ -67,4 +81,19 @@ char* trim(char *str) {
     while (len > 0 && str[len-1] == ' ') len--;
     str[len] = '\0';
     return str;
+}
+
+int tokens_extractor(char *inp, char *tokens[], size_t token_sizes[], int max_tokens) {
+    if (!inp || !*inp)
+        return 0;
+    
+    char *token = strtok(inp, " ");
+    int count = 0;
+    while (token != NULL && count < max_tokens) {
+        tokens[count] = token;
+        token_sizes[count] = strlen(token);
+        token = strtok(NULL, " ");
+        count++;
+    }
+    return count;
 }
