@@ -32,7 +32,7 @@ type E ->  <RAND_VALUE_OR_TXT>                                          => INVAL
 
 */
 
-typedef enum {
+enum {
     SET_STR,
     SET_NUM,
     UPDATE,
@@ -44,36 +44,29 @@ typedef enum {
     SUB,
     MUL,
     DIV
-} Operations;
+};
+
+typedef uint8_t Operations;
 
 typedef struct Request_Packet {
     Operations operation;
-    uint8_t arith_store_var_len;
     uint8_t var_one_name_len;
     uint16_t var_one_data_len;
     uint8_t var_two_name_len;
+    uint8_t arith_store_var_len;
     char data[]; // NOTE: when you run size of function this array size won't be returned and you need to handle it manually and same for copy function i think
 } Request_Packet;
 
-typedef enum {
-    DATA_ENTRY_OK,
-    DATA_ENTRY_INVALID_OPERATION,
-    DATA_ENTRY_INVALID_DATA,
-    DATA_ENTRY_INVALID_VAR_NAME,
-    DATA_ENTRY_INVALID_TYPE,
-    DATA_ENTRY_FAILED,
-    DATA_ENTRY_NOT_FOUND
-} DataEntryStatus;
-
-typedef struct {
-    Operations operation;
+typedef struct Response_Header {
     uint16_t item_count;
-    DataEntryStatus status;
+    uint8_t success;
+    uint8_t msg_len;
+    char msg[];
 } Response_Header;
 
-typedef struct {
-    uint8_t key_len;
+typedef struct Response_Packet {
     uint16_t val_len;
+    uint8_t key_len;
     char data[];
 } Response_Packet;
 
