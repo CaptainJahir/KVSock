@@ -97,3 +97,12 @@ int tokens_extractor(char *inp, char *tokens[], size_t token_sizes[], int max_to
     }
     return count;
 }
+
+char* to_upper_case(char *data) {
+    char *start = data;
+    while (*data != '\0') {
+        *data = toupper((unsigned char) *data);
+        data++;
+    }
+    return start;
+}

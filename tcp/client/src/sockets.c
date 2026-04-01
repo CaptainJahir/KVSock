@@ -1,13 +1,20 @@
 #include "sockets.h"
 
-/* -> additional function input:  , char *output */
 
-bool send_data(const struct Request_Packet *packet) {
+bool execute_request(const Request_Packet *packet, size_t dynamic_arr_size, char *opr_name) {
+    /*
+        IMPORTANT: 
+            `char *opr_name` should be of `char opr_name[] = "somthing";` before passing into the function
+            Simply: pass writable memory location not readonly memory location
+            else segmentation fault will arise
+    */
+
     if (packet == NULL) return false;
     errno = 0;
     int s;
     struct sockaddr_in addr;
-    char recv_buff[8192];
+    Response_Header *res_head;
+    Response_Packet *res_packet;
 
     addr.sin_family = AF_INET;
     addr.sin_port = htons(PORT);
@@ -28,38 +35,44 @@ bool send_data(const struct Request_Packet *packet) {
         return false;
     }
 
-    const char *ptr = (const char *)packet;
-    size_t remaining = sizeof(*packet);
-    while (remaining > 0) {
-        ssize_t sent = send(s, packet, remaining, MSG_NOSIGNAL);
-        if (sent < 0) {
-            if (errno == EINTR) continue;
-            perror("failed to send data");
-            close(s);
-            return false;
-        }
-        ptr += sent;
-        remaining -= sent;
-    }
-    
-
-    /*
-        Your recv call reads only once. If the server’s response is larger than your buffer or arrives in
-        multiple chunks, you might get only part of it. For a simple protocol where responses are small, this
-        is often acceptable. But if you want to be robust, you’d need a loop until you’ve received 
-        the expected amount or a timeout occurs.
-    */ 
-
-    int bytes = recv(s, recv_buff, sizeof(recv_buff)-1, 0);
-    if (bytes > 0) {
-        recv_buff[bytes] = '\0';
-        printf("%s\n", recv_buff);
-    } else if (bytes == 0) {
-        printf("Server closed the connection.\n");
-    } else {
-        perror("recv error");
+    int sent_req = send_request(s, packet, dynamic_arr_size);
+    if (sent_req < 0) {
         close(s);
         return false;
+    }
+
+    Response_Header *head = NULL;
+    int received_header =  recv_res_header (s, &head);
+    if (received_header < 0 || head == NULL) {
+        fprintf(stderr, "Failed to receive data \n");
+        close(s);
+        return false;
+    }
+    
+    uint16_t item_count = head->item_count;
+    if (head->success < 0) {
+        char *msg = head->msg;
+        fprintf(stderr, "%s", msg);
+        return false;
+    }
+    
+    free(head);
+    while (item_count > 0) {
+        Response_Packet *res_packet = NULL;
+        int received_response = recv_res_packet(s, &res_packet);
+
+        if (received_response < 0 || res_packet == NULL) {
+            fprintf(stderr, "Failed to get item\n");
+            item_count--;
+            continue;
+        }
+        
+        char *key = res_packet->data;
+        char *val = res_packet->data + res_packet->key_len;
+        
+        fprintf(stdout, "[%s] Key %s = %s", to_upper_case(opr_name), key, val);
+        item_count--;
+        free(res_packet);
     }
     
     close(s);

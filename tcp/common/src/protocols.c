@@ -6,7 +6,7 @@ TODO: set descriptors
         -1  -> failure
 */
 
-int send_request(int s, Request_Packet *packet, size_t dynamic_arr_size) {
+int send_request(int s, const Request_Packet *packet, size_t dynamic_arr_size) {
     const char *ptr = (const char *)packet;
     size_t remaining = offsetof(Request_Packet, data) + dynamic_arr_size;
     while (remaining > 0) {
@@ -54,31 +54,30 @@ int recv_request(int s, Request_Packet **packet) {
                         fixed_part->var_one_data_len + 
                         fixed_part->var_two_name_len;
 
-    Request_Packet *full = malloc(offsetof(Request_Packet, data) + remaining);
+    *packet = malloc(offsetof(Request_Packet, data) + remaining);
 
-    if (full == NULL) {
+    if (*packet == NULL) {
         free(fixed_part);
         return -1;
     }
 
-    memcpy(full, fixed_part, offsetof(Request_Packet, data));
+    memcpy(*packet, fixed_part, offsetof(Request_Packet, data));
     free(fixed_part);
 
-    char *buff = full->data;
+    char *buff = (*packet)->data;
 
     while (remaining > 0) {
         ssize_t received = recv(s, buff, remaining, 0);
 
         if (received <= 0) {
-            free(full);
+            free(*packet);
             return -1;
         }
 
         buff += received;
         remaining -= received;
     }
-
-    *packet = full;
+    (*packet)->data[remaining] = '\0';
     return 0;
     // TODO: free full after execution of the function
 }
@@ -110,7 +109,7 @@ int send_res_header (int s, Response_Header *head, size_t dynamic_arr_size) {
 
 int recv_res_header (int s, Response_Header **head) {
     // TODO: free full after the use of it (beyond this function)
-    Response_Header *fixed_part = calloc(1, sizeof(Response_Header));
+    Response_Header *fixed_part = calloc(1, offsetof(Response_Header, msg));
     if (fixed_part == NULL) {
         return -1;
     }
@@ -148,18 +147,18 @@ int recv_res_header (int s, Response_Header **head) {
     }
     
     
-    Response_Header *full = malloc(offsetof(Response_Header, msg) + msg_remaining);
-    if (full == NULL) {
+    *head = malloc(offsetof(Response_Header, msg) + msg_remaining + 1);
+    if (*head == NULL) {
         free(fixed_part);
         fprintf(stderr, "Failed to allocate memory for full header\n");
         return -1;
     }
     
-    memcpy(full, fixed_part, offsetof(Response_Header, msg));
+    memcpy(*head, fixed_part, offsetof(Response_Header, msg));
     
     free(fixed_part);
 
-    char *msg_buf = full->msg;
+    char *msg_buf = (*head)->msg;
 
     while (msg_remaining > 0) {
         ssize_t received = recv(s, msg_buf, msg_remaining, 0);
@@ -167,13 +166,13 @@ int recv_res_header (int s, Response_Header **head) {
         if (received < 0) {
             if (errno == EINTR) continue;
             perror("Failed to receive dynamic array of header");
-            free(full);
+            free(*head);
             return -1;
         }
 
         if (received == 0) {
             fprintf(stderr, "Connection closed\n");
-            free(full);
+            free(*head);
             return -1;
         }
         
@@ -181,8 +180,8 @@ int recv_res_header (int s, Response_Header **head) {
         msg_buf += received;
         msg_remaining -= received;
     }
+    (*head)->msg[(*head)->msg_len] = '\0';
     
-    *head = full;
     return 0;
 }
 
@@ -245,18 +244,18 @@ int recv_res_packet (int s, Response_Packet **res_pack) {
     fixed_part->val_len = ntohs(fixed_part->val_len);
     size_t msg_remaining = fixed_part->val_len + fixed_part->key_len;
     
-    Response_Packet *full = malloc(offsetof(Response_Packet, data) + msg_remaining);
-    if (full == NULL) {
+    *res_pack = malloc(offsetof(Response_Packet, data) + msg_remaining + 1);
+    if (*res_pack == NULL) {
         free(fixed_part);
         fprintf(stderr, "Failed to allocate memory for full response\n");
         return -1;
     }
     
-    memcpy(full, fixed_part, offsetof(Response_Packet, data));
+    memcpy(*res_pack, fixed_part, offsetof(Response_Packet, data));
     
     free(fixed_part);
 
-    char *msg_buf = full->data;
+    char *msg_buf = (*res_pack)->data;
 
     while (msg_remaining > 0) {
         ssize_t received = recv(s, msg_buf, msg_remaining, 0);
@@ -264,20 +263,19 @@ int recv_res_packet (int s, Response_Packet **res_pack) {
         if (received < 0) {
             if (errno == EINTR) continue;
             perror("Failed to receive dynamic array of response");
-            free(full);
+            free(*res_pack);
             return -1;
         }
 
         if (received == 0) {
             fprintf(stderr, "Connection closed\n");
-            free(full);
+            free(*res_pack);
             return -1;
         }
 
         msg_buf += received;
         msg_remaining -= received;
     }
-    
-    *res_pack = full;
+    (*res_pack)->data[(*res_pack)->val_len + (*res_pack)->key_len] = '\0';
     return 0;
 }

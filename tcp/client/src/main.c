@@ -7,6 +7,7 @@ int main (int argc, char *argv[]) {
         char *inp = NULL;
         size_t inp_size = 0;
         ssize_t nread;
+        fprintf(stdout, "$ ");
         nread = getline(&inp, &inp_size, stdin);
         if (nread < 0) {
             if (feof(stdin)) {
@@ -80,8 +81,8 @@ int main (int argc, char *argv[]) {
                 continue;
                 break;
         }
-        // send_data(&req);
-        // printf("\n");
+
+        execute_request(req, dynamic_arr_size, tokens[0]);
         printf("\n");
         free(inp);
     }

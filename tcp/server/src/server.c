@@ -1,4 +1,5 @@
 #include "server.h"
+// #include "handle_request.h"
 
 int main () {
     int server_sock;
@@ -16,6 +17,14 @@ int main () {
         return -1;
     }
 
+    int opt = 1;
+    if (setsockopt(server_sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
+        perror("setsockopt");
+        close(server_sock);
+        return -1;
+    }
+    
+
     if (bind(server_sock, (const struct sockaddr *) &server_addr, sizeof(server_addr)) < 0) {
         perror("bind error");
         close(server_sock);
@@ -30,8 +39,6 @@ int main () {
 
     while (true) {
         struct sockaddr_in client_addr;
-        struct Request_Packet req_packet;
-        memset(&req_packet, 0, sizeof(req_packet));
         socklen_t client_addr_size = sizeof(client_addr);
         memset(&client_addr, 0, client_addr_size);
         int client_socket = accept(server_sock, (struct sockaddr *) &client_addr , &client_addr_size);
@@ -40,35 +47,33 @@ int main () {
             continue;
         }
 
-        ssize_t total = 0;
-        ssize_t bytes;
-        while (total < sizeof(req_packet)) {
-            bytes = recv(client_socket, (char *)&req_packet + total, sizeof(req_packet) - total, 0);
-            if (bytes < 0) {
-                perror("failed to recive data");
-                break;
-            } else if (bytes == 0) {
-                fprintf(stderr, "No data recived or connection closed");
-                break;
-            }
-            total += bytes;
-        }
-        
-        /*
-        
-        if (total != sizeof(req_packet)) {
-            fprintf(stderr, "Incomplete packet received\n");
+        Request_Packet *req_packet = NULL;
+        int received_req = recv_request(client_socket, &req_packet);
+
+        if (received_req < 0 || req_packet == NULL) {
+            fprintf(stderr, "Failed to receive request\n");
+            continue;
         }
 
-        */
+        /* TODO: handle request */
+        handle_request(req_packet); // TODO: handle request and response
+        
+        int sent_res_head = send_res_header(client_socket, res, res->msg_len);
+        if (sent_res_head < 0) {
+            fprintf(stderr, "Failed to send response\n");
+            continue;
+        }
+        
+        fprintf(stdout, "done sending in the server\n");
 
-        /* TODO: handle recv -> process -> send */
+        // free(res);
+        // free(req_packet);
+
+
+        /* BUG: check if the operation is reciving in the form of sting or int i think it's int and it it's int then we are going to have trouble */
+
+        
     }
     
     return 0;
-    
-    /*
-        WORK FLOW:
-            socket → bind → listen → loop( accept → receive → process → send )
-    */
 }

@@ -88,5 +88,6 @@ int count_token (const char data[]);
 int tokens_extractor(char *inp, char *tokens[], size_t token_sizes[], int max_tokens);
 
 char* trim(char *str);
+char* to_upper_case(char *data);
 
 #endif
