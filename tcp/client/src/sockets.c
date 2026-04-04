@@ -1,7 +1,7 @@
 #include "sockets.h"
 
 
-bool execute_request(const Request_Packet *packet, size_t dynamic_arr_size, char *opr_name) {
+bool execute_request(Request_Packet *packet, size_t dynamic_arr_size, char *opr_name) {
     /*
         IMPORTANT: 
             `char *opr_name` should be of `char opr_name[] = "somthing";` before passing into the function
@@ -42,13 +42,15 @@ bool execute_request(const Request_Packet *packet, size_t dynamic_arr_size, char
     }
 
     Response_Header *head = NULL;
-    int received_header =  recv_res_header (s, &head);
+    int received_header =  recv_res_header(s, &head);
     if (received_header < 0 || head == NULL) {
         fprintf(stderr, "Failed to receive data \n");
         close(s);
         return false;
     }
-    
+
+    fprintf(stdout, "%s\n", head->msg);
+
     uint16_t item_count = head->item_count;
     if (head->success < 0) {
         char *msg = head->msg;
@@ -70,7 +72,7 @@ bool execute_request(const Request_Packet *packet, size_t dynamic_arr_size, char
         char *key = res_packet->data;
         char *val = res_packet->data + res_packet->key_len;
         
-        fprintf(stdout, "[%s] Key %s = %s", to_upper_case(opr_name), key, val);
+        fprintf(stdout, "[%s] Key %s = %s\n", to_upper_case(opr_name), key, val);
         item_count--;
         free(res_packet);
     }

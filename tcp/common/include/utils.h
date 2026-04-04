@@ -59,7 +59,7 @@ typedef struct Request_Packet {
 
 typedef struct Response_Header {
     uint16_t item_count;
-    uint8_t success;
+    int8_t success; // TODO: i have changed this from unsigned to signed so change everywhere else
     uint8_t msg_len;
     char msg[];
 } Response_Header;

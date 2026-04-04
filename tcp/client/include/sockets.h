@@ -10,6 +10,6 @@
 #define IP "127.0.0.1" /* 142.250.206.4 */
 #define PORT 8080 /* 80 */
 
-bool execute_request(const Request_Packet *packet, size_t dynamic_arr_size, char *opr_name);
+bool execute_request(Request_Packet *packet, size_t dynamic_arr_size, char *opr_name);
 
 #endif

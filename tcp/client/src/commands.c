@@ -1,7 +1,7 @@
 #include "commands.h"
 
 
- bool handle_cmd_set(Request_Packet *packet, char *tokens[], size_t token_sizes[]) {
+bool handle_cmd_set(Request_Packet *packet, char *tokens[], size_t token_sizes[]) {
     bool is_int = false;
     if (strcasecmp(tokens[0], "SET_NUM") == 0) {
         is_int = true;
@@ -27,7 +27,7 @@
         return false;
     }
 
-    packet->var_one_data_len = htons(token_sizes[2]);
+    packet->var_one_data_len = token_sizes[2];
     char *data_arr_ptr = packet->data;
 
     memcpy(data_arr_ptr, tokens[1], packet->var_one_name_len);

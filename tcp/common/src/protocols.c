@@ -6,7 +6,8 @@ TODO: set descriptors
         -1  -> failure
 */
 
-int send_request(int s, const Request_Packet *packet, size_t dynamic_arr_size) {
+int send_request(int s, Request_Packet *packet, size_t dynamic_arr_size) {
+    packet->var_one_data_len = htons(packet->var_one_data_len);
     const char *ptr = (const char *)packet;
     size_t remaining = offsetof(Request_Packet, data) + dynamic_arr_size;
     while (remaining > 0) {
@@ -65,7 +66,7 @@ int recv_request(int s, Request_Packet **packet) {
     free(fixed_part);
 
     char *buff = (*packet)->data;
-
+    size_t total_size = remaining;
     while (remaining > 0) {
         ssize_t received = recv(s, buff, remaining, 0);
 
@@ -77,7 +78,7 @@ int recv_request(int s, Request_Packet **packet) {
         buff += received;
         remaining -= received;
     }
-    (*packet)->data[remaining] = '\0';
+    (*packet)->data[total_size] = '\0';
     return 0;
     // TODO: free full after execution of the function
 }
@@ -278,4 +279,45 @@ int recv_res_packet (int s, Response_Packet **res_pack) {
     }
     (*res_pack)->data[(*res_pack)->val_len + (*res_pack)->key_len] = '\0';
     return 0;
+}
+
+Response_Header* construct_res_header(uint16_t item_count, int8_t success, uint8_t msg_len, char* msg) {
+    if (success > 0 || success < -1) {
+        return NULL;
+    }
+
+    Response_Header* head = malloc(offsetof(Response_Header, msg) + msg_len);
+    if (head == NULL) {
+        return NULL;
+    }
+
+    head->item_count = item_count;
+    head->success = success;
+    head->msg_len = msg_len;
+    memcpy(head->msg, msg, msg_len);
+
+    return head; // NOTE: free head after the use (beyond this function)
+}
+
+void send_header_response(int socket, uint16_t item_count, char* message, int flags) {
+    if (flags != FAILURE && flags != SUCCESS) {
+        fprintf(stderr, "Invalid flag received\n");
+        return;
+    }
+    
+    Response_Header* head = construct_res_header(item_count, flags, strlen(message), message);
+    if (head == NULL) {
+        fprintf(stderr, "Failed to generate response\n");
+        return;
+    }
+
+    int sent = send_res_header(socket, head, head->msg_len);
+
+    if (sent < 0) {
+        fprintf(stderr, "Failed to send response header\n");
+        free(head);
+        return;
+    }
+    free(head);
+    return;
 }

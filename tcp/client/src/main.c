@@ -15,7 +15,7 @@ int main (int argc, char *argv[]) {
                 break;
             } else {
                 free(inp);
-                perror("Failed to take input");
+                perror("Error reading input");
                 break;
             }
         }
@@ -35,8 +35,13 @@ int main (int argc, char *argv[]) {
         for (int i = 1; i < token_count; i++) { // exclude 0 because it's operation and we won't be adding it to the array
             dynamic_arr_size += token_sizes[i] + 1;
         }
-        
+
         Request_Packet *req = calloc(1, sizeof(Request_Packet) + dynamic_arr_size);
+        if (req == NULL) {
+            fprintf(stderr, "error: failed to allocate memory for request packet\n");
+            free(inp);
+            return -1;
+        }
 
         bool success;
         switch (check_operation_type(tokens[0])) {
@@ -82,6 +87,7 @@ int main (int argc, char *argv[]) {
                 break;
         }
 
+        print_request_packet(req);
         execute_request(req, dynamic_arr_size, tokens[0]);
         printf("\n");
         free(inp);

@@ -1,5 +1,5 @@
 #include "server.h"
-// #include "handle_request.h"
+
 
 int main () {
     int server_sock;
@@ -37,6 +37,12 @@ int main () {
         return -1;
     }
 
+    Hash_Table* table = create_hash_table(MAX_HASH_TABLE_SIZE);
+    if (table == NULL) {
+        fprintf(stderr, "Failed to create hash table\n");
+        return -1;
+    }
+
     while (true) {
         struct sockaddr_in client_addr;
         socklen_t client_addr_size = sizeof(client_addr);
@@ -54,26 +60,11 @@ int main () {
             fprintf(stderr, "Failed to receive request\n");
             continue;
         }
-
-        /* TODO: handle request */
-        handle_request(req_packet); // TODO: handle request and response
-        
-        int sent_res_head = send_res_header(client_socket, res, res->msg_len);
-        if (sent_res_head < 0) {
-            fprintf(stderr, "Failed to send response\n");
-            continue;
-        }
-        
-        fprintf(stdout, "done sending in the server\n");
-
-        // free(res);
-        // free(req_packet);
-
-
-        /* BUG: check if the operation is reciving in the form of sting or int i think it's int and it it's int then we are going to have trouble */
-
-        
+        print_request_packet(req_packet);
+        handle_request(client_socket, req_packet, table);
+        free(req_packet);
     }
     
+    free(table);
     return 0;
 }
