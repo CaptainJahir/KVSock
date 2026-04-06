@@ -86,14 +86,65 @@ char* trim(char *str) {
 int tokens_extractor(char *inp, char *tokens[], size_t token_sizes[], int max_tokens) {
     if (!inp || !*inp)
         return 0;
-    
-    char *token = strtok(inp, " ");
+    /* 
+        NOTE: trimmed data will be passed into the function so i am not handling trim separately
+        To handle cases such as `SET_STR|UPDATE varName lorem ipusm dollar sit emit ...`
+        we'll extract util SET_STR | UPDATE varName and then trim the remaining part directly into message
+        the remaing operations doesn't need this because in their data part there is no need for spaces
+    */
+
+    char* ptr = inp;
+    char* first_word_start = ptr;
+    while (*ptr != '\0' && !isspace(*ptr)) ptr++;
+    char* first_word_end = ptr;
     int count = 0;
-    while (token != NULL && count < max_tokens) {
-        tokens[count] = token;
-        token_sizes[count] = strlen(token);
-        token = strtok(NULL, " ");
-        count++;
+    size_t first_word_len = first_word_end - first_word_start;
+    tokens[0] = malloc(first_word_len + 1);
+    memcpy(tokens[0], first_word_start, first_word_len);
+    tokens[0][first_word_len] = '\0';
+
+    if (strcasecmp(tokens[0], "SET_STR") == 0 || strcasecmp(tokens[0], "UPDATE") == 0) {
+        while (*ptr != '\0' && isspace(*ptr)) ptr++;
+
+        char* second_word_start = ptr;
+        while (*ptr != '\0' && !isspace(*ptr)) ptr++;
+        char* second_word_end = ptr;
+
+        while (*ptr != '\0' && isspace(*ptr)) ptr++;
+
+        char* remaing_data_start = ptr;
+        char* remaing_data_end = inp + strlen(inp);
+
+        size_t second_word_len = second_word_end - second_word_start;
+        size_t remaing_len = remaing_data_end - remaing_data_start;
+        
+        tokens[1] = malloc(second_word_len + 1);
+        tokens[2] = malloc(remaing_len + 1);
+
+        memcpy(tokens[1], second_word_start, second_word_len);
+        tokens[1][second_word_len] = '\0';
+        memcpy(tokens[2], remaing_data_start, remaing_len);
+        tokens[2][remaing_len] = '\0';
+
+        /*  uint8_t -> opr && uint8_t -> var_name && uint16_t -> data */
+        if (first_word_len <= 255 && second_word_len <= 255 && remaing_len <= 65535) {
+            token_sizes[0] = (int) first_word_len;
+            token_sizes[1] = (int) second_word_len;
+            token_sizes[2] = (int) remaing_len;
+        } else {
+            fprintf(stderr, "Error: value too large to fit in int\n");
+            return -1;
+        }
+        
+        count = 3;
+    } else {
+        char *token = strtok(inp, " ");
+        while (token != NULL && count < max_tokens) {
+            tokens[count] = token;
+            token_sizes[count] = strlen(token);
+            token = strtok(NULL, " ");
+            count++;
+        }
     }
     return count;
 }

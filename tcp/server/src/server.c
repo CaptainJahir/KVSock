@@ -60,7 +60,6 @@ int main () {
             fprintf(stderr, "Failed to receive request\n");
             continue;
         }
-        print_request_packet(req_packet);
         handle_request(client_socket, req_packet, table);
         free(req_packet);
     }

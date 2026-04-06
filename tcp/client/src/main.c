@@ -30,6 +30,10 @@ int main (int argc, char *argv[]) {
         char *tokens[max_tokens];
         size_t token_sizes[max_tokens];
         int token_count = tokens_extractor(copy_data, tokens, token_sizes, max_tokens);
+        if (token_count <= 0) {
+            fprintf(stderr, "Failed to parse input%d\n", token_count);
+            continue;
+        }
         
         size_t dynamic_arr_size = 0;
         for (int i = 1; i < token_count; i++) { // exclude 0 because it's operation and we won't be adding it to the array
@@ -46,7 +50,7 @@ int main (int argc, char *argv[]) {
         bool success;
         switch (check_operation_type(tokens[0])) {
             case CMD_SET:
-                if (token_count != 3) {
+                if (strcasecmp(tokens[0], "update") == 0 && token_count != 3) {
                     fprintf(stderr, "Usage: <SET_STR|SET_NUM|UPDATE> <var_name> <value>\n\n");
                     continue;
                 } else {
@@ -87,7 +91,6 @@ int main (int argc, char *argv[]) {
                 break;
         }
 
-        print_request_packet(req);
         execute_request(req, dynamic_arr_size, tokens[0]);
         printf("\n");
         free(inp);

@@ -8,6 +8,8 @@
 #include <stdlib.h>
 #include <math.h>
 #include <stdint.h>
+#include <limits.h>
+#include <stdio.h>
 
 enum token_type {
     TOKEN_VARIABLE,
@@ -60,7 +62,7 @@ typedef struct Request_Packet {
 typedef struct Response_Header {
     uint16_t item_count;
     int8_t success; // TODO: i have changed this from unsigned to signed so change everywhere else
-    uint8_t msg_len;
+    uint8_t msg_len; // NOTE: if the variable data length exceeds 255 chars when setting. SOL: turnicate or just leave it as it is
     char msg[];
 } Response_Header;
 
