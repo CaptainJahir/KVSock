@@ -94,16 +94,17 @@ bool handle_cmd_arith(Request_Packet *packet, char *tokens[], size_t token_sizes
 
     char *data_arr_ptr = packet->data;
 
+    packet->arith_store_var_len = token_sizes[1];
+    memcpy(data_arr_ptr, tokens[1], packet->arith_store_var_len);
+    data_arr_ptr += packet->arith_store_var_len;
+
     packet->var_one_name_len = token_sizes[2];
     memcpy(data_arr_ptr, tokens[2], packet->var_one_name_len);
     data_arr_ptr += packet->var_one_name_len;
 
     packet->var_two_name_len = token_sizes[3];
     memcpy(data_arr_ptr, tokens[3], packet->var_two_name_len);
-    data_arr_ptr += packet->var_two_name_len;
-
-    packet->arith_store_var_len = token_sizes[1];
-    memcpy(data_arr_ptr, tokens[1], packet->arith_store_var_len);
+    
 
     return true;
 }

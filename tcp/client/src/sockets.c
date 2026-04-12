@@ -50,14 +50,7 @@ bool execute_request(Request_Packet *packet, size_t dynamic_arr_size, char *opr_
     }
 
     fprintf(stdout, "%s\n", head->msg);
-
     uint16_t item_count = head->item_count;
-    if (head->success < 0) {
-        char *msg = head->msg;
-        fprintf(stderr, "%s", msg);
-        return false;
-    }
-    
     free(head);
     while (item_count > 0) {
         Response_Packet *res_packet = NULL;
@@ -69,9 +62,18 @@ bool execute_request(Request_Packet *packet, size_t dynamic_arr_size, char *opr_
             continue;
         }
         
-        char *key = res_packet->data;
-        char *val = res_packet->data + res_packet->key_len;
-        
+        char* data = res_packet->data;
+
+        char *key = malloc(res_packet->key_len + 1);
+        char *val = malloc(res_packet->val_len + 1);
+
+        memcpy(key, data, res_packet->key_len);
+        key[res_packet->key_len] = '\0';
+        data += res_packet->key_len;
+
+        memcpy(val, data, res_packet->val_len);
+        val[res_packet->val_len] = '\0';
+
         fprintf(stdout, "[%s] Key %s = %s\n", to_upper_case(opr_name), key, val);
         item_count--;
         free(res_packet);

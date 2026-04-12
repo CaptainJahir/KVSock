@@ -53,6 +53,7 @@ int store_arithmetic_result_and_respond(int socket, Hash_Table* table, long doub
 }
 
 int handle_cmd_arith(int socket, Request_Packet *req, Hash_Table *table) {
+    /* <OPR> <STOR_VAR> <VAR_ONE|DATA_ONE> <VAR_TWO|DATA_TWO> */
     char store_var[req->arith_store_var_len+1];
     char arg_one[req->var_one_name_len+1];
     char arg_two[req->var_two_name_len+1];
@@ -128,7 +129,7 @@ int handle_cmd_arith(int socket, Request_Packet *req, Hash_Table *table) {
 
         return 0;
     } else if (req->operation == DIV) {
-        if (arg_two_val == 0) {
+        if (strtold(arg_two_val, NULL) == 0.0) {
             message = "Cannot divide with zero";
             send_header_response(socket, 0, message, FAILURE);
             return -1;    
